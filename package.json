@@ -7,18 +7,20 @@
     "dev": "concurrently \"vite\" \"tsx watch server/index.ts\"",
     "dev:frontend": "vite",
     "dev:server": "tsx watch server/index.ts",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
     "@google/generative-ai": "^0.24.0",
+    "@netlify/functions": "^5.2.1",
     "@notionhq/client": "^2.2.15",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "groq-sdk": "^1.2.0",
-    "marked": "^15.0.7"
+    "marked": "^15.0.7",
+    "serverless-http": "^4.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
