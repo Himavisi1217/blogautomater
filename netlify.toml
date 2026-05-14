@@ -7,6 +7,11 @@
   node_bundler = "esbuild"
   included_files = ["server/**"]
 
+# Omit non-secret keys from secrets scanning
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "PORT"
+  SECRETS_SCAN_OMIT_PATHS = ".env.example,README.md"
+
 # Redirect API calls to the serverless function
 [[redirects]]
   from = "/api/*"
