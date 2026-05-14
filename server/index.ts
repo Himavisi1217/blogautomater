@@ -1,12 +1,12 @@
+import dotenv from 'dotenv';
+dotenv.config(); // MUST be first — loads .env before any route modules read process.env
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { notionRouter } from './routes/notion.js';
 import { generateRouter } from './routes/generate.js';
 import { strapiRouter } from './routes/strapi.js';
 import { settingsRouter } from './routes/settings.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;

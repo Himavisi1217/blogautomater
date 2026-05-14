@@ -122,12 +122,14 @@ generateRouter.post('/test', async (req: Request, res: Response) => {
       await model.generateContent('Say "connected" in one word.');
       res.json({ success: true, message: 'Gemini connected successfully' });
     } else if (provider === 'claude') {
-      // Claude via AgentRouter — spoof Codex CLI headers for authorization
+      // Claude via AgentRouter — requires both API key and auth token
+      const authToken = process.env.AGENTROUTER_AUTH_TOKEN || '';
       const response = await fetch('https://agentrouter.org/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
+          'Authorization': `Bearer ${authToken}`,
           'anthropic-version': '2023-06-01',
           'Originator': 'codex_cli_rs',
           'User-Agent': 'codex_cli_rs/0.101.0 (Windows; x64)',
@@ -142,7 +144,17 @@ generateRouter.post('/test', async (req: Request, res: Response) => {
 
       if (!response.ok) {
         const errBody = await response.text();
-        throw new Error(`AgentRouter returned ${response.status}: ${errBody}`);
+        let errJson: any = {};
+        try { errJson = JSON.parse(errBody); } catch {}
+        const msg = errJson?.error?.message || errBody;
+
+        if (response.status === 503) {
+          throw new Error('AgentRouter has no available quota right now. Try again later or switch to Groq.');
+        }
+        if (response.status === 403) {
+          throw new Error(`Model not allowed by your AgentRouter token: ${msg}`);
+        }
+        throw new Error(`AgentRouter returned ${response.status}: ${msg}`);
       }
 
       res.json({ success: true, message: 'Claude connected via AgentRouter' });
@@ -178,9 +190,10 @@ async function generateWithGemini(prompt: string, apiKey: string): Promise<strin
 async function generateWithClaude(prompt: string, apiKey: string): Promise<string> {
   if (!apiKey) throw new Error('Claude/AgentRouter API key is not configured');
 
-  // Use direct fetch to AgentRouter with spoofed Codex CLI headers
+  // Use direct fetch to AgentRouter with both API key and auth token
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+  const authToken = process.env.AGENTROUTER_AUTH_TOKEN || '';
 
   const response = await fetch('https://agentrouter.org/v1/messages', {
     method: 'POST',
@@ -188,6 +201,7 @@ async function generateWithClaude(prompt: string, apiKey: string): Promise<strin
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
+      'Authorization': `Bearer ${authToken}`,
       'anthropic-version': '2023-06-01',
       'Originator': 'codex_cli_rs',
       'User-Agent': 'codex_cli_rs/0.101.0 (Windows; x64)',
@@ -204,7 +218,17 @@ async function generateWithClaude(prompt: string, apiKey: string): Promise<strin
 
   if (!response.ok) {
     const errBody = await response.text();
-    throw new Error(`AgentRouter error (${response.status}): ${errBody}`);
+    let errJson: any = {};
+    try { errJson = JSON.parse(errBody); } catch {}
+    const msg = errJson?.error?.message || errBody;
+
+    if (response.status === 503) {
+      throw new Error('AgentRouter has no available quota right now. Try again later or switch to Groq.');
+    }
+    if (response.status === 403) {
+      throw new Error(`Model not allowed by your AgentRouter token: ${msg}`);
+    }
+    throw new Error(`AgentRouter error (${response.status}): ${msg}`);
   }
 
   const data = await response.json();

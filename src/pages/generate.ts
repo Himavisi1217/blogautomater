@@ -66,7 +66,7 @@ export function renderGenerate(): string {
           <div class="card" style="margin-top:20px;">
             <h3 class="section-title">🤖 AI Provider</h3>
             <div class="provider-cards">
-              <div class="provider-card selected" data-provider="gemini" id="provider-gemini">
+              <div class="provider-card" data-provider="gemini" id="provider-gemini">
                 <div class="provider-icon">💎</div>
                 <div class="provider-name">Gemini</div>
                 <div class="provider-desc">Google AI, fast generation</div>
@@ -76,7 +76,7 @@ export function renderGenerate(): string {
                 <div class="provider-name">Claude</div>
                 <div class="provider-desc">via AgentRouter</div>
               </div>
-              <div class="provider-card" data-provider="groq" id="provider-groq">
+              <div class="provider-card selected" data-provider="groq" id="provider-groq">
                 <div class="provider-icon">⚡</div>
                 <div class="provider-name">Groq</div>
                 <div class="provider-desc">Llama 3.3, ultra fast</div>
@@ -126,7 +126,7 @@ export function renderGenerate(): string {
 }
 
 let currentBlog: any = null;
-let selectedProvider = 'gemini';
+let selectedProvider = 'groq';
 
 export function initGeneratePage(): void {
   // Provider selection
