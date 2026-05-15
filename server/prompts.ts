@@ -149,3 +149,42 @@ RULES:
 
 Return ONLY valid JSON, no markdown formatting or code blocks.`;
 }
+
+export function buildKeywordPackPrompt(
+  context: { topic: string; domain: string; brandFocus: string },
+  candidates: Array<{ keyword: string; sources: string[]; score: number; competitor?: string }>
+): string {
+  const list = candidates
+    .map((c, i) => `${i + 1}. "${c.keyword}" [sources: ${c.sources.join(', ')}] score=${c.score}${c.competitor ? ` competitor=${c.competitor}` : ''}`)
+    .join('\n');
+
+  return `You are an SEO keyword strategist for ${context.domain} (PilotUP — ${context.brandFocus}).
+
+TASK: Select exactly 30 PRIMARY keywords and exactly 3 SECONDARY keywords per primary from the CANDIDATE LIST below.
+
+STRICT RULES (anti-hallucination):
+- You may ONLY use keywords that appear VERBATIM in the candidate list (case-insensitive match is OK for selection, but output must match candidate spelling).
+- Do NOT invent, paraphrase, or combine keywords into new phrases not in the list.
+- Each secondary must be a different candidate keyword semantically related to its primary (same topic cluster: ${context.topic}).
+- Prioritize candidates with multiple sources (google, bing, duckduckgo, competitor) and higher scores.
+- Focus on keywords relevant to MVP: AI employees, virtual workforce, autonomous agents for business.
+- Prefer commercial and informational intent that competitors rank for.
+
+CANDIDATE LIST (${candidates.length} keywords from live Google, Bing, and DuckDuckGo fetches):
+${list}
+
+Return ONLY valid JSON in this shape:
+{
+  "keywords": [
+    {
+      "primary": "exact candidate phrase",
+      "secondary": ["exact candidate", "exact candidate", "exact candidate"],
+      "intent": "informational|commercial|transactional",
+      "sources": ["google","bing"],
+      "score": 5
+    }
+  ]
+}
+
+Output exactly 30 items in the keywords array.`;
+}

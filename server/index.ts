@@ -7,6 +7,7 @@ import { notionRouter } from './routes/notion.js';
 import { generateRouter } from './routes/generate.js';
 import { strapiRouter } from './routes/strapi.js';
 import { settingsRouter } from './routes/settings.js';
+import { keywordResearchRouter } from './routes/keyword-research.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,6 +20,7 @@ app.use('/api/notion', notionRouter);
 app.use('/api/generate', generateRouter);
 app.use('/api/strapi', strapiRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/keyword-research', keywordResearchRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {

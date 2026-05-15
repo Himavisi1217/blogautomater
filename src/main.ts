@@ -5,6 +5,7 @@ import { renderGenerate, initGeneratePage } from './pages/generate';
 import { renderBlogs, initBlogsPage } from './pages/blogs';
 import { renderPreview, initPreviewPage } from './pages/preview';
 import { renderSettings, initSettingsPage } from './pages/settings';
+import { renderKeywordResearch, initKeywordResearchPage } from './pages/keyword-research';
 import { getBlogs } from './store';
 
 // Declare global navigation functions
@@ -18,6 +19,7 @@ declare global {
 const pages: Record<string, { render: () => string; init?: () => void }> = {
   dashboard: { render: renderDashboard },
   keywords: { render: renderKeywords, init: initKeywordsPage },
+  'keyword-research': { render: renderKeywordResearch, init: initKeywordResearchPage },
   generate: { render: renderGenerate, init: initGeneratePage },
   blogs: { render: renderBlogs, init: initBlogsPage },
   preview: { render: renderPreview, init: initPreviewPage },
