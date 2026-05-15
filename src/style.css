@@ -889,6 +889,59 @@ body.auth-mode {
   max-width: 180px;
 }
 
+/* ===== KEYWORDS MONTH GROUPING ===== */
+.month-group {
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
+.month-group:last-child {
+  margin-bottom: 0;
+}
+
+.month-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: linear-gradient(180deg, var(--bg-card-hover), color-mix(in srgb, var(--bg-card-hover) 50%, transparent));
+  border-bottom: 1px solid var(--border);
+}
+
+.month-group-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.month-group .table-wrapper {
+  border-top: 0;
+}
+
+.month-group .data-table th,
+.month-group .data-table td {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+[data-theme='dark'] .month-group-header {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card-hover) 84%, transparent), color-mix(in srgb, var(--bg-card) 88%, transparent));
+}
+
 /* ===== RECENT LIST ===== */
 .recent-list { display: flex; flex-direction: column; gap: 8px; }
 .recent-item {
@@ -1003,4 +1056,14 @@ body.auth-mode {
   .main-content { padding: 16px; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .provider-cards { flex-direction: column; }
+
+  .month-group-header {
+    padding: 10px 12px;
+  }
+
+  .month-group .data-table th,
+  .month-group .data-table td {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 }
