@@ -16,18 +16,20 @@ notionRouter.get('/keywords', async (req: Request, res: Response) => {
 
     const notion = new Client({ auth: apiKey });
 
-    const response = await notion.databases.query({
-      database_id: databaseId,
-      sorts: [{ timestamp: 'created_time', direction: 'descending' }],
-    });
+    const pages = await fetchAllDatabasePages(notion, databaseId);
 
-    const keywords = response.results.map((page: any) => {
+    const keywords = pages.map((page: any) => {
       const props = page.properties;
+      const blogWritten = extractCheckboxProperty(props, 'Blog written');
+      const monthKey = extractMonthKey(props) || page.created_time?.slice(0, 7) || 'unknown';
       return {
         id: page.id,
         mainKeyword: extractTextProperty(props, 'Main Keyword') || extractTextProperty(props, 'Name') || extractTextProperty(props, 'Keyword') || '',
         secondaryKeywords: extractTextProperty(props, 'Secondary Keywords') || '',
-        status: extractSelectProperty(props, 'Status') || 'pending',
+        blogWritten,
+        status: blogWritten ? 'pushed' : 'not_pushed',
+        notionStatus: extractSelectProperty(props, 'Status') || '',
+        monthKey,
         priority: extractSelectProperty(props, 'Priority') || 'medium',
         tone: extractSelectProperty(props, 'Tone') || 'conversational',
         wordCount: extractNumberProperty(props, 'Word Count') || 1500,
@@ -36,7 +38,9 @@ notionRouter.get('/keywords', async (req: Request, res: Response) => {
       };
     });
 
-    res.json({ keywords, total: response.results.length });
+    keywords.sort((left: any, right: any) => compareKeywordRecords(left, right));
+
+    res.json({ keywords, total: keywords.length });
   } catch (error: any) {
     console.error('Notion error:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch keywords from Notion' });
@@ -104,4 +108,95 @@ function extractNumberProperty(props: any, name: string): number {
   const prop = props[name];
   if (!prop || prop.type !== 'number') return 0;
   return prop.number || 0;
+}
+
+function extractCheckboxProperty(props: any, name: string): boolean {
+  const prop = props[name];
+  if (!prop || prop.type !== 'checkbox') return false;
+  return Boolean(prop.checkbox);
+}
+
+async function fetchAllDatabasePages(notion: Client, databaseId: string): Promise<any[]> {
+  const pages: any[] = [];
+  let startCursor: string | undefined;
+
+  do {
+    const response = await notion.databases.query({
+      database_id: databaseId,
+      page_size: 100,
+      start_cursor: startCursor,
+      sorts: [{ timestamp: 'created_time', direction: 'descending' }],
+    });
+
+    pages.push(...response.results);
+    startCursor = response.has_more ? response.next_cursor || undefined : undefined;
+  } while (startCursor);
+
+  return pages;
+}
+
+function compareKeywordRecords(left: any, right: any): number {
+  const leftMonth = left.monthKey || left.createdAt || '';
+  const rightMonth = right.monthKey || right.createdAt || '';
+
+  const leftMonthValue = getSortDateValue(leftMonth);
+  const rightMonthValue = getSortDateValue(rightMonth);
+  if (leftMonthValue !== rightMonthValue) return rightMonthValue - leftMonthValue;
+
+  const leftCreatedValue = getSortDateValue(left.createdAt);
+  const rightCreatedValue = getSortDateValue(right.createdAt);
+  if (leftCreatedValue !== rightCreatedValue) return rightCreatedValue - leftCreatedValue;
+
+  return String(left.mainKeyword || '').localeCompare(String(right.mainKeyword || ''));
+}
+
+function getSortDateValue(value: string): number {
+  if (!value) return 0;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function extractMonthKey(props: any): string {
+  const candidates = ['Created at', 'Month', 'Blog Month', 'Article Month', 'Published', 'Published At', 'Date', 'Created'];
+
+  for (const name of candidates) {
+    const prop = props[name];
+    if (!prop) continue;
+
+    if (prop.type === 'date' && prop.date?.start) {
+      return prop.date.start.slice(0, 7);
+    }
+
+    if (prop.type === 'select' && prop.select?.name) {
+      const parsed = parseMonthText(prop.select.name);
+      if (parsed) return parsed;
+    }
+
+    if (prop.type === 'rich_text' && prop.rich_text?.[0]?.plain_text) {
+      const parsed = parseMonthText(prop.rich_text[0].plain_text);
+      if (parsed) return parsed;
+    }
+
+    if (prop.type === 'title' && prop.title?.[0]?.plain_text) {
+      const parsed = parseMonthText(prop.title[0].plain_text);
+      if (parsed) return parsed;
+    }
+  }
+
+  return '';
+}
+
+function parseMonthText(value: string): string {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{2})/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}`;
+
+  const date = new Date(trimmed);
+  if (!Number.isNaN(date.getTime())) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  return '';
 }
