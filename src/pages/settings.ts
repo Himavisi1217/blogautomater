@@ -11,6 +11,24 @@ export function renderSettings(): string {
 
       <div class="grid-2">
         <div>
+          <!-- Appearance -->
+          <div class="settings-section">
+            <div class="settings-section-title">
+              <div class="settings-icon" style="background:var(--bg-card);">🌓</div>
+              Appearance
+            </div>
+            <div class="theme-row">
+              <div class="theme-copy">
+                <div class="theme-title">Dark mode</div>
+                <div class="theme-desc">Switch the entire app between light and dark appearance.</div>
+              </div>
+              <label class="theme-switch" aria-label="Dark mode toggle">
+                <input type="checkbox" id="theme-toggle" />
+                <span class="theme-slider"></span>
+              </label>
+            </div>
+          </div>
+
           <!-- Notion -->
           <div class="settings-section">
             <div class="settings-section-title">
@@ -123,6 +141,12 @@ export function renderSettings(): string {
 export function initSettingsPage(): void {
   // Load current settings
   loadCurrentSettings();
+  loadThemeSetting();
+
+  const themeToggle = document.getElementById('theme-toggle') as HTMLInputElement | null;
+  themeToggle?.addEventListener('change', () => {
+    window.setTheme?.(themeToggle.checked ? 'dark' : 'light');
+  });
 
   // Notion
   document.getElementById('btn-test-notion')?.addEventListener('click', async () => {
@@ -222,6 +246,16 @@ export function initSettingsPage(): void {
     const token = (document.getElementById('set-strapi-token') as HTMLInputElement).value;
     await saveSettings({ STRAPI_URL: url, STRAPI_API_TOKEN: token });
   });
+}
+
+function loadThemeSetting(): void {
+  const savedTheme = localStorage.getItem('blogforge_theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = savedTheme === 'dark' || savedTheme === 'light' ? savedTheme : (prefersDark ? 'dark' : 'light');
+  const themeToggle = document.getElementById('theme-toggle') as HTMLInputElement | null;
+  if (themeToggle) {
+    themeToggle.checked = theme === 'dark';
+  }
 }
 
 async function loadCurrentSettings(): Promise<void> {

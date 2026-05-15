@@ -8,11 +8,15 @@ import { renderSettings, initSettingsPage } from './pages/settings';
 import { renderKeywordResearch, initKeywordResearchPage } from './pages/keyword-research';
 import { getBlogs } from './store';
 
+type ThemeMode = 'light' | 'dark';
+const THEME_STORAGE_KEY = 'blogforge_theme';
+
 // Declare global navigation functions
 declare global {
   interface Window {
     navigateTo: (page: string) => void;
     previewBlog: (id: string) => void;
+    setTheme?: (theme: ThemeMode) => void;
   }
 }
 
@@ -47,8 +51,28 @@ function navigateTo(page: string): void {
   history.pushState(null, '', `#${page}`);
 }
 
+function getInitialTheme(): ThemeMode {
+  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+  if (savedTheme === 'light' || savedTheme === 'dark') {
+    return savedTheme;
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme: ThemeMode): void {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_STORAGE_KEY, theme);
+
+  const themeToggle = document.getElementById('theme-toggle') as HTMLInputElement | null;
+  if (themeToggle) {
+    themeToggle.checked = theme === 'dark';
+  }
+}
+
 // Global navigation function
 window.navigateTo = navigateTo;
+window.setTheme = applyTheme;
 
 // Global preview function
 window.previewBlog = (id: string) => {
@@ -80,6 +104,8 @@ async function checkHealth(): Promise<void> {
 
 // Initialize
 function init(): void {
+  applyTheme(getInitialTheme());
+
   // Nav click handlers
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', (e) => {

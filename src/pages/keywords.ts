@@ -123,7 +123,7 @@ export function initKeywordsPage(): void {
 
       selectedMonthFilter = 'all';
       refreshMonthFilterOptions();
-      document.getElementById('month-filter')!.value = 'all';
+      (document.getElementById('month-filter') as HTMLSelectElement).value = 'all';
       document.getElementById('keywords-table')!.innerHTML = renderKeywordsContent(cachedKeywords, selectedMonthFilter);
       showToast(`Fetched ${data.total} keywords from Notion`, 'success');
       attachRadioListeners();
