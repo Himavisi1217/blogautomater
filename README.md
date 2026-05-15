@@ -1,4 +1,4 @@
-# BlogForge — AI Blog Automation
+# PilotUp Bloger — AI Blog Automation
 
 Automated blog content generation platform powered by AI. Fetches keywords from Notion, generates SEO-optimized blog posts using Gemini/Claude/Groq, and saves them as drafts to Strapi CMS.
 
