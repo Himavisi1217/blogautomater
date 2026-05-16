@@ -1126,3 +1126,21 @@ body.auth-mode {
     padding-right: 12px;
   }
 }
+
+/* ===== LESSEN BOLDNESS ===== */
+/* Reduce heavy boldness globally to a softer weight */
+strong, b, .font-bold {
+  font-weight: 600 !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600 !important;
+}
+
+.btn, .badge, .stat-value, .data-table th, .auth-title--center, .auth-sub--center, .brand-text, .page-title, .section-title, .form-label, .nav-label {
+  font-weight: 600 !important;
+}
+
+/* Tweak elements that used 700 for large numeric values */
+.stat-value { font-weight: 600 !important; }
+
