@@ -44,6 +44,9 @@ generateRouter.post('/blog', async (req: Request, res: Response) => {
     // Clean up any stray dashes
     blogContent = cleanContent(blogContent);
 
+    // Enforce strict word count
+    blogContent = enforceWordCount(blogContent, wordCount);
+
     // Extract title from content
     const titleMatch = blogContent.match(/<h1[^>]*>(.*?)<\/h1>/i);
     const title = titleMatch ? titleMatch[1] : mainKeyword;
@@ -264,4 +267,123 @@ function cleanContent(content: string): string {
   content = content.replace(/\s*```$/i, '');
 
   return content.trim();
+}
+
+function countWords(html: string): number {
+  // Strip HTML tags and count words
+  const text = html
+    .replace(/<[^>]*>/g, ' ') // Remove all HTML tags
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .trim();
+  return text.split(' ').filter(word => word.length > 0).length;
+}
+
+function enforceWordCount(html: string, targetWordCount: number): string {
+  const tolerance = Math.round(targetWordCount * 0.05); // 5% tolerance
+  const minWords = targetWordCount - tolerance;
+  const maxWords = targetWordCount + tolerance;
+  
+  const currentWords = countWords(html);
+  
+  // If within tolerance, return as-is
+  if (currentWords >= minWords && currentWords <= maxWords) {
+    return html;
+  }
+  
+  // If way over (more than 10% over max), truncate smartly
+  if (currentWords > targetWordCount + Math.round(targetWordCount * 0.1)) {
+    // Try to truncate FAQ first (less critical than main content + conclusion)
+    let truncated = truncateFAQIfNeeded(html, maxWords);
+    let wordCount = countWords(truncated);
+    
+    // If still over, remove from end while preserving conclusion structure
+    if (wordCount > maxWords) {
+      truncated = truncateFromEndGracefully(truncated, maxWords);
+    }
+    
+    return truncated.trim();
+  }
+  
+  // If slightly over tolerance, just return (close enough)
+  return html;
+}
+
+function truncateFAQIfNeeded(html: string, maxWords: number): string {
+  const faqMatch = html.match(/<h2>Frequently Asked Questions<\/h2>([\s\S]*?)(?=<h2>|<\/h2>|$)/i);
+  if (!faqMatch) return html;
+  
+  const beforeFAQ = html.substring(0, faqMatch.index || 0);
+  const wordsBefore = countWords(beforeFAQ);
+  
+  // If main content alone is already near target, remove FAQ entirely
+  if (wordsBefore > maxWords * 0.85) {
+    return beforeFAQ + '<h2>Key Takeaways</h2><p>The information above should give you a solid foundation on this topic.</p>';
+  }
+  
+  // Otherwise, truncate FAQ to fit
+  const faqContent = faqMatch[1];
+  const faqWords = maxWords - wordsBefore;
+  let truncatedFAQ = faqContent;
+  
+  // Remove FAQ items from the end until we fit
+  while (countWords(beforeFAQ + truncatedFAQ) > maxWords && truncatedFAQ.length > 100) {
+    const lastDivIdx = truncatedFAQ.lastIndexOf('</div>');
+    if (lastDivIdx <= 0) break;
+    truncatedFAQ = truncatedFAQ.substring(0, lastDivIdx);
+  }
+  
+  return beforeFAQ + '<h2>Frequently Asked Questions</h2>' + truncatedFAQ + '</div></div>';
+}
+
+function truncateFromEndGracefully(html: string, maxWords: number): string {
+  let truncated = html;
+  let wordCount = countWords(truncated);
+  
+  // Identify sections: main content, conclusion, etc.
+  const sections: Array<{ tag: string; start: number; end: number }> = [];
+  
+  // Find all h2 sections
+  const h2Regex = /<h2[^>]*>([^<]+)<\/h2>/gi;
+  let match;
+  while ((match = h2Regex.exec(html)) !== null) {
+    const nextH2 = html.indexOf('<h2', match.index + 1);
+    const sectionEnd = nextH2 > 0 ? nextH2 : html.length;
+    sections.push({
+      tag: match[1],
+      start: match.index,
+      end: sectionEnd,
+    });
+  }
+  
+  // Remove sections from the end, preferring to keep main content and conclusion
+  for (let i = sections.length - 1; i >= 0 && wordCount > maxWords; i--) {
+    const section = sections[i];
+    // Keep conclusion and main keyword sections, remove others
+    if (section.tag.toLowerCase().includes('conclusion') || 
+        section.tag.toLowerCase().includes('key takeaway')) {
+      break; // Stop, preserve conclusion
+    }
+    
+    // Remove this section
+    truncated = truncated.substring(0, section.start) + truncated.substring(section.end);
+    wordCount = countWords(truncated);
+  }
+  
+  // Ensure we end with a proper conclusion
+  if (!truncated.includes('Conclusion') && !truncated.includes('conclusion')) {
+    truncated = truncated + '<h2>Conclusion</h2><p>The key takeaway is clear: understanding and implementing these strategies will set you up for success.</p>';
+  }
+  
+  // Close any unclosed divs
+  const openDivs = (truncated.match(/<div[^>]*>/g) || []).length;
+  const closeDivs = (truncated.match(/<\/div>/g) || []).length;
+  for (let i = closeDivs; i < openDivs; i++) {
+    truncated += '</div>';
+  }
+  
+  return truncated.trim();
 }

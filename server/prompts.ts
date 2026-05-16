@@ -53,13 +53,24 @@ SECONDARY KEYWORDS: ${secondaryKeywords.map(k => `"${k}"`).join(', ')}
 
 ${PILOTUP_CONTEXT}
 
+🔴 CRITICAL: WORD COUNT REQUIREMENT 🔴
+WRITE EXACTLY ${wordCount} words (±5% tolerance: ${Math.round(wordCount * 0.95)}-${Math.round(wordCount * 1.05)} words).
+Count only body text, not HTML tags.
+You MUST plan your content carefully so that:
+- Main sections take up ~60-70% of words
+- FAQ section takes up ~20-25% of words  
+- Conclusion is concise but complete (~10% of words)
+- STOP writing when you reach approximately ${wordCount} words
+- NEVER exceed this limit
+- The ending must feel natural and complete, not cut off mid-sentence
+
 STRICT RULES:
 1. Write in a ${tone}, natural, human tone. The reader should never suspect this was written by AI.
 2. NEVER use em dashes (—) or en dashes (–). Use commas, periods, or restructure sentences instead.
 3. NEVER use these AI-sounding words or phrases: ${BANNED_WORDS.slice(0, 30).join(', ')}
 4. Use the main keyword naturally 3-5 times throughout the article.
 5. Use each secondary keyword at least once, naturally woven into the content.
-6. Write approximately ${wordCount} words.
+6. Write to the EXACT word count specified above: ${wordCount} words with a natural, complete ending.
 7. Use short paragraphs (2-3 sentences max).
 8. Include practical examples, tips, or actionable advice.
 9. Write like a knowledgeable friend explaining something over coffee.

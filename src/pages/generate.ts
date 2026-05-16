@@ -97,7 +97,6 @@ export function renderGenerate(): string {
             <div id="gen-result-preview" style="max-height:300px;overflow-y:auto;font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;padding:12px;background:var(--bg-input);border-radius:var(--radius-sm);"></div>
 
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="btn btn-primary" id="btn-gen-meta">Generate SEO Meta</button>
               <button class="btn btn-secondary" id="btn-gen-preview">Full Preview</button>
               <button class="btn btn-success" id="btn-gen-strapi">Save to Strapi</button>
             </div>
@@ -140,7 +139,6 @@ export function initGeneratePage(): void {
 
   // Generate button
   document.getElementById('btn-generate')?.addEventListener('click', handleGenerate);
-  document.getElementById('btn-gen-meta')?.addEventListener('click', handleGenerateMeta);
   document.getElementById('btn-gen-preview')?.addEventListener('click', () => {
     if (currentBlog) {
       sessionStorage.setItem('previewBlog', JSON.stringify(currentBlog));
@@ -196,7 +194,12 @@ async function handleGenerate(): Promise<void> {
     tempDiv.innerHTML = currentBlog.content;
     document.getElementById('gen-result-preview')!.textContent = tempDiv.textContent?.substring(0, 500) + '...' || '';
 
-    showToast('Blog generated successfully!', 'success');
+    showToast('Blog generated successfully! Generating SEO metadata...', 'success');
+    statusText.textContent = 'Generating SEO metadata...';
+    
+    // Auto-generate SEO meta
+    await generateMetaData();
+    
     statusText.textContent = 'Generation complete!';
     setTimeout(() => { progress.style.display = 'none'; }, 2000);
   } catch (err: any) {
@@ -207,12 +210,8 @@ async function handleGenerate(): Promise<void> {
   }
 }
 
-async function handleGenerateMeta(): Promise<void> {
+async function generateMetaData(): Promise<void> {
   if (!currentBlog) return;
-
-  const metaBtn = document.getElementById('btn-gen-meta') as HTMLButtonElement;
-  metaBtn.disabled = true;
-  metaBtn.textContent = 'Generating...';
 
   try {
     const data = await apiPost('/generate/meta', {
@@ -256,10 +255,8 @@ async function handleGenerateMeta(): Promise<void> {
 
     showToast('SEO metadata generated!', 'success');
   } catch (err: any) {
-    showToast(err.message, 'error');
-  } finally {
-    metaBtn.disabled = false;
-    metaBtn.textContent = 'Generate SEO Meta';
+    console.error('Meta generation error:', err);
+    showToast('Could not auto-generate meta, but blog is ready', 'warning');
   }
 }
 
