@@ -35,12 +35,12 @@ export function renderBlogs(): string {
                     <td><strong style="cursor:pointer" onclick="window.previewBlog('${blog.id}')">${blog.title.length > 50 ? blog.title.substring(0, 50) + '...' : blog.title}</strong></td>
                     <td>${blog.mainKeyword}</td>
                     <td><span style="text-transform:capitalize">${blog.provider}</span></td>
-                    <td><span class="badge badge-${blog.status === 'saved' ? 'done' : 'pending'}">${blog.status}</span></td>
+                    <td><span class="badge badge-${(blog.status === 'saved' || blog.status === 'published') ? 'done' : 'pending'}">${blog.status}</span></td>
                     <td>${formatDate(blog.generatedAt)}</td>
                     <td>
                       <div style="display:flex;gap:6px;flex-wrap:wrap;">
                         <button class="btn btn-secondary btn-sm" onclick="window.previewBlog('${blog.id}')">Preview</button>
-                        ${blog.status !== 'saved' ? `<button class="btn ${strapiBtnStyle} btn-sm" id="strapi-btn-${blog.id}" onclick="window.saveBlogToStrapi('${blog.id}')">${strapiBtnText}</button>` : `<button class="btn btn-sm" disabled style="opacity:0.6;background:var(--success-bg);color:var(--success);border:1px solid var(--success);">✓ ${isAutoPublish ? 'Published' : 'Saved'}</button>`}
+                        ${blog.status !== 'saved' && blog.status !== 'published' ? `<button class="btn ${strapiBtnStyle} btn-sm" id="strapi-btn-${blog.id}" onclick="window.saveBlogToStrapi('${blog.id}')">${strapiBtnText}</button>` : (blog.status === 'published' ? `<button class="btn btn-sm" disabled style="opacity:0.9;background:var(--danger);color:#fff;border:1px solid var(--danger);">✓ Published</button>` : `<button class="btn btn-sm" disabled style="opacity:0.9;background:var(--success-bg);color:var(--success);border:1px solid var(--success);">✓ Saved</button>`)}
                         <button class="btn btn-danger btn-sm" onclick="window.deleteBlogPost('${blog.id}')">Delete</button>
                       </div>
                     </td>
@@ -52,7 +52,7 @@ export function renderBlogs(): string {
         </div>
       ` : `
         <div class="empty-state">
-          <div class="empty-state-icon">📄</div>
+          <div class="empty-state-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="3" width="12" height="18" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M16 3v5h5" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></div>
           <div class="empty-state-title">No blog posts yet</div>
           <p>Generate your first blog post to see it here.</p>
           <button class="btn btn-primary" style="margin-top:16px" onclick="window.navigateTo('generate')">Generate Blog</button>
@@ -93,7 +93,6 @@ export function initBlogsPage(): void {
         content: blog.content,
         mainKeyword: blog.mainKeyword,
         secondaryKeywords: blog.secondaryKeywords,
-        excerpt: blog.excerptBasis || '',
         slug: blog.meta?.slug || '',
         author: author,
         keywords: blog.meta?.keywords || [],
@@ -115,7 +114,6 @@ export function initBlogsPage(): void {
           secondaryKeywords: blog.secondaryKeywords,
           metaTitle: blog.meta?.metaTitle || '',
           metaDescription: blog.meta?.metaDescription || '',
-          excerpt: blog.excerptBasis || '',
           slug: blog.meta?.slug || '',
           provider: blog.provider,
           keywords: blog.meta?.keywords?.join(', ') || '',
@@ -125,7 +123,7 @@ export function initBlogsPage(): void {
         console.warn('Notion save warning:', notionErr.message);
       }
 
-      blog.status = 'saved';
+      blog.status = autopublish ? 'published' : 'saved';
       blog.strapiId = data.strapiId;
       saveBlog(blog);
 

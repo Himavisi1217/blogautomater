@@ -4,6 +4,7 @@ import { renderKeywords, initKeywordsPage } from './pages/keywords';
 import { renderGenerate, initGeneratePage } from './pages/generate';
 import { renderBlogs, initBlogsPage } from './pages/blogs';
 import { renderPreview, initPreviewPage } from './pages/preview';
+import { renderEditor, initEditor } from './pages/editor';
 import { renderSettings, initSettingsPage } from './pages/settings';
 import { renderKeywordResearch, initKeywordResearchPage } from './pages/keyword-research';
 import { renderLogin, initLoginPage } from './pages/login';
@@ -30,6 +31,7 @@ const pages: Record<string, { render: () => string; init?: () => void }> = {
   generate: { render: renderGenerate, init: initGeneratePage },
   blogs: { render: renderBlogs, init: initBlogsPage },
   preview: { render: renderPreview, init: initPreviewPage },
+  editor: { render: renderEditor, init: initEditor },
   settings: { render: renderSettings, init: initSettingsPage },
   login: { render: renderLogin, init: initLoginPage },
   users: { render: renderUsers, init: initUsersPage },

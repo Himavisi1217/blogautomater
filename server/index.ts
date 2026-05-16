@@ -30,5 +30,5 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Blog Automation Server running on http://localhost:${PORT}`);
+  console.log(`Blog Automation Server running on http://localhost:${PORT}`);
 });

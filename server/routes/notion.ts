@@ -89,14 +89,14 @@ notionRouter.post('/test', async (req: Request, res: Response) => {
   }
 });
 
-// Save blog post to Blog Articles database
+// Save blog content into the matching Keywords database row
 notionRouter.post('/save-blog', async (req: Request, res: Response) => {
   try {
     const apiKey = (req.headers['x-notion-key'] as string) || process.env.NOTION_API_KEY;
-    const articlesDbId = (req.body.databaseId as string) || process.env.NOTION_ARTICLES_DATABASE_ID;
+    const keywordsDbId = (req.body.databaseId as string) || process.env.NOTION_DATABASE_ID;
 
-    if (!apiKey || !articlesDbId) {
-      res.status(400).json({ error: 'Notion API key and Blog Articles Database ID are required' });
+    if (!apiKey || !keywordsDbId) {
+      res.status(400).json({ error: 'Notion API key and Keywords Database ID are required' });
       return;
     }
 
@@ -114,30 +114,64 @@ notionRouter.post('/save-blog', async (req: Request, res: Response) => {
     } = req.body;
 
     const notion = new Client({ auth: apiKey });
+    const mainKey = (mainKeyword || metaTitle || title || '').toString().trim();
 
-    const props: any = {
-      'Name': { title: [{ text: { content: (title || '').slice(0, 2000) } }] },
-      'Content': { rich_text: [{ text: { content: (content || '').slice(0, 2000) } }] },
-      'Main Keyword': { rich_text: [{ text: { content: mainKeyword || '' } }] },
-      'Secondary Keywords': { rich_text: [{ text: { content: Array.isArray(secondaryKeywords) ? secondaryKeywords.join(', ') : secondaryKeywords || '' } }] },
-      'Meta Title': { rich_text: [{ text: { content: metaTitle || '' } }] },
-      'Meta Description': { rich_text: [{ text: { content: metaDescription || '' } }] },
-      'Excerpt': { rich_text: [{ text: { content: excerpt || '' } }] },
-      'Slug': { rich_text: [{ text: { content: slug || '' } }] },
-      'Keywords': { rich_text: [{ text: { content: keywords || '' } }] },
-      'Provider': { select: { name: provider || 'unknown' } },
-      'Status': { select: { name: 'Draft' } },
-    };
+    if (!mainKey) {
+      res.status(400).json({ error: 'Main keyword is required to locate the Notion row' });
+      return;
+    }
 
-    const page = await notion.pages.create({
-      parent: { database_id: articlesDbId },
-      properties: props,
+    const database = await notion.databases.retrieve({ database_id: keywordsDbId });
+    const keywordMatchProperty = pickKeywordMatchProperty(database as any);
+    const queryRes = await notion.databases.query({
+      database_id: keywordsDbId,
+      page_size: 1,
+      filter: buildContainsFilterForProperty(database as any, keywordMatchProperty, mainKey),
+    });
+
+    const kwPage = queryRes.results?.[0] as any;
+    if (!kwPage) {
+      res.status(404).json({ error: `No keyword row found for "${mainKey}"` });
+      return;
+    }
+
+    const blogContent = (content || '').slice(0, 2000);
+    const articleProperty = kwPage.properties?.['Blog Articles'];
+
+    if (!articleProperty || articleProperty.type !== 'relation') {
+      throw new Error('Blog Articles is expected to be relation in the live Notion schema');
+    }
+
+    const relationDbId =
+      articleProperty.relation?.database_id ||
+      articleProperty.relation?.data_source_id ||
+      process.env.NOTION_ARTICLES_DATABASE_ID ||
+      process.env.NOTION_BLOG_ARTICLES_DATABASE_ID;
+
+    if (!relationDbId) {
+      throw new Error('Could not determine the Blog Articles relation database id');
+    }
+
+    const articlePage = await notion.pages.create({
+      parent: { database_id: relationDbId },
+      properties: {
+        'Name': { title: [{ text: { content: (title || mainKey).slice(0, 2000) } }] },
+        'Content': { rich_text: [{ text: { content: blogContent } }] },
+      },
+    });
+
+    await notion.pages.update({
+      page_id: kwPage.id,
+      properties: {
+        'Blog Articles': { relation: [{ id: articlePage.id }] },
+        'Blog written': { checkbox: true },
+      },
     });
 
     res.json({
       success: true,
-      message: 'Blog saved to Notion Blog Articles database',
-      notionPageId: page.id,
+      message: 'Blog content saved to Notion Keywords database row',
+      notionPageId: kwPage.id,
     });
   } catch (error: any) {
     console.error('Notion save blog error:', error);
@@ -209,6 +243,40 @@ function getSortDateValue(value: string): number {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
+
+function pickKeywordMatchProperty(database: any): string {
+  const properties = database?.properties || {};
+  if (properties['Name']) return 'Name';
+  if (properties['Main Keyword']) return 'Main Keyword';
+  if (properties['Keyword']) return 'Keyword';
+  const firstTitle = Object.entries(properties).find(([, prop]: any) => prop?.type === 'title');
+  return firstTitle?.[0] ? String(firstTitle[0]) : 'Name';
+}
+
+function buildTextContainsFilter(property: string, value: string): any {
+  return {
+    property,
+    rich_text: { contains: value },
+  };
+}
+
+function buildContainsFilterForProperty(database: any, property: string, value: string): any {
+  const prop = database?.properties?.[property];
+  if (prop?.type === 'title') {
+    return { property, title: { contains: value } };
+  }
+  if (prop?.type === 'rich_text') {
+    return { property, rich_text: { contains: value } };
+  }
+  if (prop?.type === 'checkbox') {
+    return { property, checkbox: { equals: true } };
+  }
+  if (prop?.type === 'select') {
+    return { property, select: { equals: value } };
+  }
+  return { property, rich_text: { contains: value } };
+}
+
 
 function extractMonthKey(props: any): string {
   const candidates = ['Created at', 'Month', 'Blog Month', 'Article Month', 'Published', 'Published At', 'Date', 'Created'];

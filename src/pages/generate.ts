@@ -36,7 +36,7 @@ export function renderGenerate(): string {
       <div class="grid-2">
         <div>
           <div class="card">
-            <h3 class="section-title">📝 Content Settings</h3>
+            <h3 class="section-title"><svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:8px;" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="3" width="12" height="18" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M16 3v5h5" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Content Settings</h3>
 
             <div class="form-group">
               <label class="form-label">Main Keyword *</label>
@@ -71,17 +71,17 @@ export function renderGenerate(): string {
             <h3 class="section-title">🤖 AI Provider</h3>
             <div class="provider-cards">
               <div class="provider-card" data-provider="gemini" id="provider-gemini">
-                <div class="provider-icon">💎</div>
+                <div class="provider-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l3 6 6 3-6 3-3 6-3-6-6-3 6-3 3-6z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></div>
                 <div class="provider-name">Gemini</div>
                 <div class="provider-desc">Google AI, fast generation</div>
               </div>
               <div class="provider-card" data-provider="claude" id="provider-claude">
-                <div class="provider-icon">🧠</div>
+                <div class="provider-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a4 4 0 00-4 4v2a4 4 0 004 4 4 4 0 004-4V6a4 4 0 00-4-4z" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M8 14v6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></div>
                 <div class="provider-name">Claude</div>
                 <div class="provider-desc">via AgentRouter</div>
               </div>
               <div class="provider-card selected" data-provider="groq" id="provider-groq">
-                <div class="provider-icon">⚡</div>
+                <div class="provider-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></div>
                 <div class="provider-name">Groq</div>
                 <div class="provider-desc">Llama 3.3, ultra fast</div>
               </div>
@@ -96,23 +96,24 @@ export function renderGenerate(): string {
 
         <div>
           <div class="card" id="gen-result-card" style="display:none;">
-            <h3 class="section-title">✅ Generated Successfully</h3>
+            <h3 class="section-title"><svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:8px;" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>Generated Successfully</h3>
             <div id="gen-result-title" style="font-size:1.1rem;font-weight:600;margin-bottom:12px;"></div>
             <div id="gen-result-preview" style="max-height:300px;overflow-y:auto;font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;padding:12px;background:var(--bg-input);border-radius:var(--radius-sm);"></div>
 
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button class="btn btn-secondary" id="btn-gen-preview">Full Preview</button>
+              <button class="btn btn-outline" id="btn-gen-edit">Edit</button>
               <button class="btn ${strapiBtnStyle}" id="btn-gen-strapi">${strapiBtnText}</button>
             </div>
 
             <div class="meta-panel" id="meta-panel" style="display:none;">
-              <h3 class="section-title" style="margin-bottom:16px;">🔍 SEO Metadata</h3>
+              <h3 class="section-title" style="margin-bottom:16px;"><svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:8px;" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>SEO Metadata</h3>
               <div id="meta-content"></div>
             </div>
           </div>
 
           <div class="card" id="gen-tips-card">
-            <h3 class="section-title">💡 Generation Tips</h3>
+            <h3 class="section-title"><svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:8px;" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 18h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M12 2a6 6 0 00-3 11v3h6v-3a6 6 0 00-3-11z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>Generation Tips</h3>
             <ul style="color:var(--text-secondary);font-size:0.9rem;padding-left:20px;">
               <li style="margin-bottom:8px;">Use specific, long-tail keywords for better results</li>
               <li style="margin-bottom:8px;">Add 3-4 secondary keywords that are synonyms or related terms</li>
@@ -148,6 +149,11 @@ export function initGeneratePage(): void {
       sessionStorage.setItem('previewBlog', JSON.stringify(currentBlog));
       window.navigateTo('preview');
     }
+  });
+  document.getElementById('btn-gen-edit')?.addEventListener('click', () => {
+    if (!currentBlog) return;
+    sessionStorage.setItem('previewBlog', JSON.stringify(currentBlog));
+    window.navigateTo('editor');
   });
   document.getElementById('btn-gen-strapi')?.addEventListener('click', handleSaveToStrapi);
 }
@@ -268,7 +274,7 @@ async function generateMetaData(): Promise<void> {
     showToast('SEO metadata generated!', 'success');
   } catch (err: any) {
     console.error('Meta generation error:', err);
-    showToast('Could not auto-generate meta, but blog is ready', 'warning');
+    showToast('Could not auto-generate meta, but blog is ready', 'info');
   }
 }
 
@@ -326,7 +332,7 @@ async function handleSaveToStrapi(): Promise<void> {
       // Don't fail completely if Notion save fails, Strapi save is more important
     }
 
-    currentBlog.status = 'saved';
+    currentBlog.status = autopublish ? 'published' : 'saved';
     currentBlog.strapiId = strapiData.strapiId;
     saveBlog(currentBlog);
 

@@ -39,7 +39,7 @@ function sourceBadges(sources?: string[]): string {
 
 function renderPackTable(pack: KeywordGroup[]): string {
   if (!pack.length) {
-    return `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">No keyword pack yet</div><p>Run discovery to fetch live suggestions from Google, Bing, and DuckDuckGo.</p></div>`;
+    return `<div class="empty-state"><div class="empty-state-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></div><div class="empty-state-title">No keyword pack yet</div><p>Run discovery to fetch live suggestions from Google, Bing, and DuckDuckGo.</p></div>`;
   }
 
   return `

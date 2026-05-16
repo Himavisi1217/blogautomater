@@ -25,7 +25,7 @@ export function renderPreview(): string {
     return `
       <div class="page">
         <div class="empty-state">
-          <div class="empty-state-icon">👀</div>
+          <div class="empty-state-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" stroke-width="1.2" fill="none"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></div>
           <div class="empty-state-title">No blog selected for preview</div>
           <p>Select a blog from the Blog Posts page to preview it.</p>
           <button class="btn btn-primary" style="margin-top:16px" onclick="window.navigateTo('blogs')">View Blog Posts</button>
@@ -46,7 +46,8 @@ export function renderPreview(): string {
           <p class="page-subtitle">${blog.provider} &bull; ${blog.mainKeyword}</p>
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn ${strapiBtnStyle}" id="btn-preview-strapi" onclick="window.savePreviewToStrapi('${blog.id}')">${blog.status === 'saved' ? '✓ ' + (isAutoPublish ? 'Published' : 'Saved') : strapiBtnText}</button>
+          <button class="btn btn-outline" id="btn-preview-edit">Edit</button>
+          <button class="btn ${strapiBtnStyle}" id="btn-preview-strapi" onclick="window.savePreviewToStrapi('${blog.id}')">${blog.status === 'published' ? '✓ Published' : (blog.status === 'saved' ? '✓ Saved' : strapiBtnText)}</button>
           <button class="btn btn-secondary" onclick="window.copyBlogHTML()">Copy HTML</button>
           <button class="btn btn-primary" onclick="window.navigateTo('blogs')">Back to List</button>
         </div>
@@ -54,7 +55,7 @@ export function renderPreview(): string {
 
       ${blog.meta ? `
         <div class="meta-panel" style="margin-bottom:24px;">
-          <h3 class="section-title">🔍 SEO Metadata</h3>
+          <h3 class="section-title"><svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:8px;" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>SEO Metadata</h3>
           <div class="grid-2" style="gap:12px;">
             <div class="meta-item">
               <div class="meta-item-label">Meta Title (${blog.meta.metaTitle?.length || 0}/60)</div>
@@ -96,6 +97,22 @@ export function renderPreview(): string {
 }
 
 export function initPreviewPage(): void {
+  // Determine the blog currently being previewed (matches renderPreview logic)
+  let blog: any = null;
+  const previewRaw = sessionStorage.getItem('previewBlog');
+  if (previewRaw) {
+    try { blog = JSON.parse(previewRaw); } catch {}
+  }
+
+  if (!blog) {
+    const hash = window.location.hash;
+    const match = hash.match(/preview\/(.+)/);
+    if (match) {
+      const blogs = getBlogs();
+      blog = blogs.find(b => b.id === match[1]);
+    }
+  }
+
   (window as any).copyBlogHTML = () => {
     const content = document.getElementById('blog-preview-content')?.innerHTML || '';
     navigator.clipboard.writeText(content).then(() => {
@@ -125,7 +142,7 @@ export function initPreviewPage(): void {
         content: blog.content,
         mainKeyword: blog.mainKeyword,
         secondaryKeywords: blog.secondaryKeywords,
-        excerpt: blog.excerptBasis || '',
+        excerpt: blog.meta?.excerpt || '',
         slug: blog.meta?.slug || '',
         author: author,
         keywords: blog.meta?.keywords || [],
@@ -148,7 +165,7 @@ export function initPreviewPage(): void {
           secondaryKeywords: blog.secondaryKeywords,
           metaTitle: blog.meta?.metaTitle || '',
           metaDescription: blog.meta?.metaDescription || '',
-          excerpt: blog.excerptBasis || '',
+          excerpt: blog.meta?.excerpt || '',
           slug: blog.meta?.slug || '',
           provider: blog.provider,
           keywords: blog.meta?.keywords?.join(', ') || '',
@@ -158,7 +175,7 @@ export function initPreviewPage(): void {
         console.warn('Notion save warning:', notionErr.message);
       }
 
-      blog.status = 'saved';
+      blog.status = autopublish ? 'published' : 'saved';
       blog.strapiId = strapiData.strapiId;
       saveBlog(blog);
 
@@ -178,4 +195,13 @@ export function initPreviewPage(): void {
       }
     }
   };
+
+  // Edit button handler (if present)
+  const editBtn = document.getElementById('btn-preview-edit');
+  if (editBtn) {
+    editBtn.addEventListener('click', () => {
+      if (blog) sessionStorage.setItem('previewBlog', JSON.stringify(blog));
+      window.navigateTo('editor');
+    });
+  }
 }

@@ -4,7 +4,7 @@ import { formatDate } from '../utils';
 export function renderDashboard(): string {
   const blogs = getBlogs();
   const totalBlogs = blogs.length;
-  const savedToStrapi = blogs.filter(b => b.status === 'saved').length;
+  const savedToStrapi = blogs.filter(b => b.status === 'saved' || b.status === 'published').length;
   const geminiCount = blogs.filter(b => b.provider === 'gemini').length;
   const claudeCount = blogs.filter(b => b.provider === 'claude').length;
 
@@ -53,10 +53,7 @@ export function renderDashboard(): string {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
           Keyword Research
         </button>
-        <button class="btn btn-secondary" onclick="window.navigateTo('settings')">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68 1.65 1.65 0 0010 3.17V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-          Configure APIs
-        </button>
+        <!-- Configure APIs removed per settings simplification request -->
       </div>
 
       <div class="section-title">Recent Blog Posts</div>
@@ -68,13 +65,13 @@ export function renderDashboard(): string {
                 <div class="recent-item-title">${blog.title}</div>
                 <div class="recent-item-meta">${blog.provider} &bull; ${formatDate(blog.generatedAt)}</div>
               </div>
-              <span class="badge badge-${blog.status === 'saved' ? 'done' : blog.status === 'generated' ? 'pending' : 'draft'}">${blog.status}</span>
+              <span class="badge badge-${(blog.status === 'saved' || blog.status === 'published') ? 'done' : blog.status === 'generated' ? 'pending' : 'draft'}">${blog.status}</span>
             </div>
           `).join('')}
         </div>
       ` : `
         <div class="empty-state">
-          <div class="empty-state-icon">📝</div>
+          <div class="empty-state-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="3" width="12" height="18" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M16 3v5h5" stroke="currentColor" stroke-width="1.2" fill="none"/></svg></div>
           <div class="empty-state-title">No blogs generated yet</div>
           <p>Start by fetching keywords from Notion or generate your first blog post.</p>
         </div>
