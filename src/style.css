@@ -658,8 +658,20 @@ body.auth-mode {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
   font-size: 0.9rem;
+  vertical-align: middle;
 }
 .data-table tr:hover td { background: var(--bg-card-hover); }
+
+.data-table th:first-child,
+.data-table td:first-child {
+  width: 44px;
+  text-align: center;
+}
+
+.keyword-radio {
+  display: block;
+  margin: 0 auto;
+}
 
 /* ===== BADGES ===== */
 .badge {

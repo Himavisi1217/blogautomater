@@ -25,7 +25,7 @@ notionRouter.get('/keywords', async (req: Request, res: Response) => {
       return {
         id: page.id,
         mainKeyword: extractTextProperty(props, 'Main Keyword') || extractTextProperty(props, 'Name') || extractTextProperty(props, 'Keyword') || '',
-        secondaryKeywords: extractTextProperty(props, 'Secondary Keywords') || '',
+        secondaryKeywords: extractTextProperty(props, 'Secondary') || extractTextProperty(props, 'Secondary Keywords') || '',
         blogWritten,
         status: blogWritten ? 'pushed' : 'not_pushed',
         notionStatus: extractSelectProperty(props, 'Status') || '',
@@ -93,8 +93,8 @@ notionRouter.post('/test', async (req: Request, res: Response) => {
 function extractTextProperty(props: any, name: string): string {
   const prop = props[name];
   if (!prop) return '';
-  if (prop.type === 'title') return prop.title?.[0]?.plain_text || '';
-  if (prop.type === 'rich_text') return prop.rich_text?.[0]?.plain_text || '';
+  if (prop.type === 'title') return (prop.title || []).map((part: any) => part.plain_text || '').join('');
+  if (prop.type === 'rich_text') return (prop.rich_text || []).map((part: any) => part.plain_text || '').join('');
   return '';
 }
 

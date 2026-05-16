@@ -155,23 +155,31 @@ keywordResearchRouter.post('/export-notion', async (req: Request, res: Response)
     }
 
     const notion = new Client({ auth: apiKey });
+    const month = (req.body.month as string) || '';
     let created = 0;
     const errors: string[] = [];
 
+    // Convert month (YYYY-MM) to tag name (e.g., "May 2026")
+    const monthTagName = monthToTagName(month);
+
     for (const kw of keywords) {
       try {
+        const props: any = {
+          'Name': { title: [{ text: { content: kw.primary.slice(0, 2000) } }] },
+          'Secondary': {
+            rich_text: [{ text: { content: (kw.secondary || []).join(', ').slice(0, 2000) } }],
+          },
+          'Blog written': { checkbox: false },
+        };
+
+        // Set Created at as a select (tag) if month provided
+        if (monthTagName) {
+          props['Created at'] = { select: { name: monthTagName } };
+        }
+
         await notion.pages.create({
           parent: { database_id: databaseId },
-          properties: {
-            'Main Keyword': { title: [{ text: { content: kw.primary.slice(0, 2000) } }] },
-            'Secondary Keywords': {
-              rich_text: [{ text: { content: (kw.secondary || []).join(', ').slice(0, 2000) } }],
-            },
-            Status: { select: { name: 'pending' } },
-            Priority: { select: { name: 'high' } },
-            Tone: { select: { name: 'conversational' } },
-            'Word Count': { number: 1500 },
-          },
+          properties: props,
         });
         created++;
         await new Promise((r) => setTimeout(r, 350));
@@ -201,6 +209,16 @@ keywordResearchRouter.post('/probe', async (req: Request, res: Response) => {
     res.status(500).json({ error: (error as Error).message });
   }
 });
+
+function monthToTagName(month: string): string {
+  // Convert YYYY-MM to "Month Year" format (e.g., "May 2026")
+  if (!month || !/^\d{4}-\d{2}/.test(month)) return '';
+  const [year, monthNum] = month.split('-');
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const idx = parseInt(monthNum, 10) - 1;
+  if (idx < 0 || idx >= 12) return '';
+  return `${monthNames[idx]} ${year}`;
+}
 
 function countSources(candidates: KeywordCandidate[]): Record<string, number> {
   const counts: Record<string, number> = { google: 0, bing: 0, duckduckgo: 0, competitor: 0 };

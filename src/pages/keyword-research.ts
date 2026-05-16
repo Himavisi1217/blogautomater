@@ -47,6 +47,7 @@ function renderPackTable(pack: KeywordGroup[]): string {
       <table class="data-table kr-table">
         <thead>
           <tr>
+            <th><input type="checkbox" id="kr-select-all" /></th>
             <th>#</th>
             <th>Primary Keyword</th>
             <th>Secondary (×3)</th>
@@ -59,8 +60,9 @@ function renderPackTable(pack: KeywordGroup[]): string {
           ${pack
             .map(
               (g, i) => `
-            <tr>
-              <td>${i + 1}</td>
+              <tr>
+                <td><input type="checkbox" class="kr-select" data-i="${i}" /></td>
+                <td>${i + 1}</td>
               <td><strong>${escapeHtml(g.primary)}</strong>
                 ${g.intent ? `<span class="badge badge-pending" style="margin-left:6px;font-size:0.7rem;">${g.intent}</span>` : ''}
                 ${g.competitor ? `<div class="kr-meta">via ${escapeHtml(g.competitor)}</div>` : ''}
@@ -333,6 +335,17 @@ function bindSearch(): void {
 let packActionsBound = false;
 
 function bindPackActions(): void {
+  const selectAllEl = document.getElementById('kr-select-all') as HTMLInputElement | null;
+  if (selectAllEl) {
+    const clone = selectAllEl.cloneNode(true) as HTMLInputElement;
+    selectAllEl.replaceWith(clone);
+    clone.addEventListener('change', () => {
+      const checked = clone.checked;
+      document.querySelectorAll('.kr-select').forEach((cb) => {
+        (cb as HTMLInputElement).checked = checked;
+      });
+    });
+  }
   document.querySelectorAll('.kr-use-one').forEach((btn) => {
     const el = btn as HTMLButtonElement;
     const clone = el.cloneNode(true) as HTMLButtonElement;
@@ -362,12 +375,29 @@ function bindPackActions(): void {
   document.getElementById('btn-kr-export-notion')?.addEventListener('click', async () => {
     if (!lastPack.length) return;
     const btn = document.getElementById('btn-kr-export-notion') as HTMLButtonElement;
+    // collect selected rows
+    const selectedInputs = Array.from(document.querySelectorAll('.kr-select')) as HTMLInputElement[];
+    const selected = selectedInputs.filter((i) => i.checked).map((i) => lastPack[parseInt(i.dataset.i || '0', 10)]).filter(Boolean);
+    if (!selected.length) {
+      showToast('Select at least one keyword to export', 'error');
+      return;
+    }
+
+    const defaultMonth = new Date().toISOString().slice(0, 7);
+    const month = window.prompt('Month to assign for these Notion rows (YYYY-MM)', defaultMonth);
+    if (!month) {
+      showToast('Export cancelled', 'info');
+      return;
+    }
+
     btn.disabled = true;
     btn.textContent = 'Exporting…';
     try {
-      const data = await apiPost('/keyword-research/export-notion', {
-        keywords: lastPack.map((g) => ({ primary: g.primary, secondary: g.secondary })),
-      });
+      const payload = {
+        keywords: selected.map((g) => ({ primary: g.primary, secondary: g.secondary || [] })),
+        month,
+      };
+      const data = await apiPost('/keyword-research/export-notion', payload);
       showToast(`Exported ${data.created} keywords to Notion`, 'success');
       if (data.failed) showToast(`${data.failed} failed — check Notion property names`, 'error');
     } catch (e: unknown) {
