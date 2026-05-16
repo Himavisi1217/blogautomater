@@ -96,7 +96,7 @@ function getInitialTheme(): ThemeMode {
     return savedTheme;
   }
 
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return 'light';
 }
 
 function applyTheme(theme: ThemeMode): void {
