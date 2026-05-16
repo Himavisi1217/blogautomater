@@ -57,7 +57,7 @@ notionRouter.patch('/keywords/:id/status', async (req: Request, res: Response) =
     }
 
     const notion = new Client({ auth: apiKey });
-    const { id } = req.params;
+    const id = String(req.params.id);
     const { status } = req.body;
 
     await notion.pages.update({

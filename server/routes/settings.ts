@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { buildSettingsResponse } from '../lib/settings.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -12,19 +13,7 @@ const SETTINGS_FILE = path.join(__dirname, '..', '..', '.env');
 // Get current settings (masked)
 settingsRouter.get('/', (_req: Request, res: Response) => {
   try {
-    const settings = loadEnvFile();
-    // Mask sensitive values
-    const masked: Record<string, string> = {};
-    for (const [key, value] of Object.entries(settings)) {
-      if (value && value.length > 8) {
-        masked[key] = value.substring(0, 4) + '****' + value.substring(value.length - 4);
-      } else if (value) {
-        masked[key] = '****';
-      } else {
-        masked[key] = '';
-      }
-    }
-    res.json({ settings: masked, configured: getConfiguredStatus(settings) });
+    res.json(buildSettingsResponse(loadEnvFile()));
   } catch {
     res.json({ settings: {}, configured: {} });
   }
@@ -80,12 +69,3 @@ function loadEnvFile(): Record<string, string> {
   return settings;
 }
 
-function getConfiguredStatus(settings: Record<string, string>): Record<string, boolean> {
-  return {
-    notion: !!(settings.NOTION_API_KEY && settings.NOTION_DATABASE_ID && 
-              !settings.NOTION_API_KEY.includes('your_')),
-    gemini: !!(settings.GEMINI_API_KEY && !settings.GEMINI_API_KEY.includes('your_')),
-    anthropic: !!(settings.ANTHROPIC_API_KEY && !settings.ANTHROPIC_API_KEY.includes('your_')),
-    strapi: !!(settings.STRAPI_API_TOKEN && !settings.STRAPI_API_TOKEN.includes('your_')),
-  };
-}

@@ -103,7 +103,7 @@ keywordResearchRouter.post('/discover', async (req: Request, res: Response) => {
       const c = candidateByKey.get(g.primary.toLowerCase().trim());
       return {
         ...g,
-        sources: g.sources?.length ? g.sources : c?.sources,
+        sources: g.sources?.length ? g.sources : c?.sources || [],
         score: g.score ?? c?.score,
         competitor: g.competitor ?? c?.competitor,
       };

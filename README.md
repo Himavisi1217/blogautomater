@@ -50,6 +50,8 @@ Opens frontend at `http://localhost:5173` and backend at `http://localhost:3001`
 
 Build settings are pre-configured in `netlify.toml`.
 
+Netlify serves the SPA from `dist` and routes `/api/*` to the serverless function in `netlify/functions/api.ts`. The API exposes the same `/api/...` paths as local development, while settings are read-only in serverless hosting because `.env` writes are not persistent there.
+
 ## Tech Stack
 
 - **Frontend**: Vite + TypeScript
