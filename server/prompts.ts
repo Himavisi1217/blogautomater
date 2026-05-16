@@ -147,7 +147,8 @@ Generate the following in JSON format:
   "ogTitle": "Open Graph title - Can be same as meta title or slightly different, under 60 characters",
   "ogDescription": "Open Graph description - Compelling social share text, under 160 characters",
   "excerpt": "A 2-3 sentence excerpt/summary of the blog post, under 300 characters",
-  "slug": "url-friendly-slug-based-on-title"
+  "slug": "url-friendly-slug-based-on-title",
+  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5", "keyword6", "keyword7", "keyword8", "keyword9", "keyword10"]
 }
 
 RULES:
@@ -157,6 +158,9 @@ RULES:
 - Make the excerpt compelling and informative
 - The slug should be lowercase, hyphenated, and SEO-friendly
 - Include "PilotUP" in the OG description if it fits naturally
+- Generate 8-10 highly relevant keywords for the blog post that complement the main keyword
+- Keywords should be realistic, searchable terms related to the blog topic
+- Avoid duplicate keywords
 
 Return ONLY valid JSON, no markdown formatting or code blocks.`;
 }

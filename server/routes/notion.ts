@@ -89,7 +89,61 @@ notionRouter.post('/test', async (req: Request, res: Response) => {
   }
 });
 
-// Helper functions to extract Notion properties
+// Save blog post to Blog Articles database
+notionRouter.post('/save-blog', async (req: Request, res: Response) => {
+  try {
+    const apiKey = (req.headers['x-notion-key'] as string) || process.env.NOTION_API_KEY;
+    const articlesDbId = (req.body.databaseId as string) || process.env.NOTION_ARTICLES_DATABASE_ID;
+
+    if (!apiKey || !articlesDbId) {
+      res.status(400).json({ error: 'Notion API key and Blog Articles Database ID are required' });
+      return;
+    }
+
+    const {
+      title,
+      content,
+      mainKeyword,
+      secondaryKeywords,
+      metaTitle,
+      metaDescription,
+      excerpt,
+      slug,
+      provider,
+      keywords,
+    } = req.body;
+
+    const notion = new Client({ auth: apiKey });
+
+    const props: any = {
+      'Name': { title: [{ text: { content: (title || '').slice(0, 2000) } }] },
+      'Content': { rich_text: [{ text: { content: (content || '').slice(0, 2000) } }] },
+      'Main Keyword': { rich_text: [{ text: { content: mainKeyword || '' } }] },
+      'Secondary Keywords': { rich_text: [{ text: { content: Array.isArray(secondaryKeywords) ? secondaryKeywords.join(', ') : secondaryKeywords || '' } }] },
+      'Meta Title': { rich_text: [{ text: { content: metaTitle || '' } }] },
+      'Meta Description': { rich_text: [{ text: { content: metaDescription || '' } }] },
+      'Excerpt': { rich_text: [{ text: { content: excerpt || '' } }] },
+      'Slug': { rich_text: [{ text: { content: slug || '' } }] },
+      'Keywords': { rich_text: [{ text: { content: keywords || '' } }] },
+      'Provider': { select: { name: provider || 'unknown' } },
+      'Status': { select: { name: 'Draft' } },
+    };
+
+    const page = await notion.pages.create({
+      parent: { database_id: articlesDbId },
+      properties: props,
+    });
+
+    res.json({
+      success: true,
+      message: 'Blog saved to Notion Blog Articles database',
+      notionPageId: page.id,
+    });
+  } catch (error: any) {
+    console.error('Notion save blog error:', error);
+    res.status(500).json({ error: error.message || 'Failed to save blog to Notion' });
+  }
+});
 function extractTextProperty(props: any, name: string): string {
   const prop = props[name];
   if (!prop) return '';

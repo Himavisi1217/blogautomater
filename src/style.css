@@ -610,8 +610,8 @@ body.auth-mode {
 .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
 .btn-success { background: var(--success); color: #0a0a0f; }
 .btn-success:hover { filter: brightness(1.1); transform: translateY(-1px); }
-.btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(255,107,107,0.2); }
-.btn-danger:hover { background: var(--danger); color: white; }
+.btn-danger { background: var(--danger); color: white; border: 1px solid var(--danger); }
+.btn-danger:hover { filter: brightness(1.1); transform: translateY(-1px); }
 .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
 .btn-lg { padding: 14px 28px; font-size: 1rem; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }

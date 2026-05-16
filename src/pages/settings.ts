@@ -44,6 +44,11 @@ export function renderSettings(): string {
               <input type="text" class="form-input" id="set-notion-db" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
               <div class="form-hint">The ID of your keywords database in Notion</div>
             </div>
+            <div class="form-group">
+              <label class="form-label">Notion Blog Articles DB ID</label>
+              <input type="text" class="form-input" id="set-notion-articles-db" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+              <div class="form-hint">The ID of your Blog Articles database in Notion (where generated blogs will be saved)</div>
+            </div>
             <div style="display:flex;gap:8px;">
               <button class="btn btn-secondary btn-sm" id="btn-test-notion">Test Connection</button>
               <button class="btn btn-primary btn-sm" id="btn-save-notion">Save</button>
@@ -67,8 +72,18 @@ export function renderSettings(): string {
             </div>
             <div class="form-group">
               <label class="form-label">Content Type</label>
-              <input type="text" class="form-input" id="set-strapi-type" placeholder="articles" value="articles" />
-              <div class="form-hint">The Strapi collection type name for blog posts</div>
+              <input type="text" class="form-input" id="set-strapi-type" placeholder="blog-post" value="blog-post" />
+              <div class="form-hint">The Strapi collection slug (e.g., blog-post, articles, blogPost)</div>
+            </div>
+            <div class="theme-row">
+              <div class="theme-copy">
+                <div class="theme-title">Auto-publish to Strapi</div>
+                <div class="theme-desc">Automatically publish blogs when saving, or save as drafts.</div>
+              </div>
+              <label class="theme-switch" aria-label="Auto-publish toggle">
+                <input type="checkbox" id="set-strapi-autopublish" />
+                <span class="theme-slider"></span>
+              </label>
             </div>
             <div style="display:flex;gap:8px;">
               <button class="btn btn-secondary btn-sm" id="btn-test-strapi">Test Connection</button>
@@ -166,7 +181,8 @@ export function initSettingsPage(): void {
   document.getElementById('btn-save-notion')?.addEventListener('click', async () => {
     const key = (document.getElementById('set-notion-key') as HTMLInputElement).value;
     const db = (document.getElementById('set-notion-db') as HTMLInputElement).value;
-    await saveSettings({ NOTION_API_KEY: key, NOTION_DATABASE_ID: db });
+    const articlesDb = (document.getElementById('set-notion-articles-db') as HTMLInputElement).value;
+    await saveSettings({ NOTION_API_KEY: key, NOTION_DATABASE_ID: db, NOTION_ARTICLES_DATABASE_ID: articlesDb });
   });
 
   // Gemini
@@ -244,7 +260,10 @@ export function initSettingsPage(): void {
   document.getElementById('btn-save-strapi')?.addEventListener('click', async () => {
     const url = (document.getElementById('set-strapi-url') as HTMLInputElement).value;
     const token = (document.getElementById('set-strapi-token') as HTMLInputElement).value;
-    await saveSettings({ STRAPI_URL: url, STRAPI_API_TOKEN: token });
+    const contentType = (document.getElementById('set-strapi-type') as HTMLInputElement).value;
+    const autopublish = (document.getElementById('set-strapi-autopublish') as HTMLInputElement).checked;
+    localStorage.setItem('strapi_autopublish', String(autopublish));
+    await saveSettings({ STRAPI_URL: url, STRAPI_API_TOKEN: token, STRAPI_CONTENT_TYPE: contentType });
   });
 }
 
@@ -264,11 +283,20 @@ async function loadCurrentSettings(): Promise<void> {
     const s = data.settings || {};
     if (s.NOTION_API_KEY) (document.getElementById('set-notion-key') as HTMLInputElement).placeholder = s.NOTION_API_KEY;
     if (s.NOTION_DATABASE_ID) (document.getElementById('set-notion-db') as HTMLInputElement).placeholder = s.NOTION_DATABASE_ID;
+    if (s.NOTION_ARTICLES_DATABASE_ID) (document.getElementById('set-notion-articles-db') as HTMLInputElement).placeholder = s.NOTION_ARTICLES_DATABASE_ID;
     if (s.GEMINI_API_KEY) (document.getElementById('set-gemini-key') as HTMLInputElement).placeholder = s.GEMINI_API_KEY;
     if (s.ANTHROPIC_API_KEY) (document.getElementById('set-claude-key') as HTMLInputElement).placeholder = s.ANTHROPIC_API_KEY;
     if (s.GROQ_API_KEY) (document.getElementById('set-groq-key') as HTMLInputElement).placeholder = s.GROQ_API_KEY;
     if (s.STRAPI_URL) (document.getElementById('set-strapi-url') as HTMLInputElement).placeholder = s.STRAPI_URL;
     if (s.STRAPI_API_TOKEN) (document.getElementById('set-strapi-token') as HTMLInputElement).placeholder = s.STRAPI_API_TOKEN;
+    if (s.STRAPI_CONTENT_TYPE) (document.getElementById('set-strapi-type') as HTMLInputElement).placeholder = s.STRAPI_CONTENT_TYPE;
+    
+    // Load autopublish setting
+    const autopublish = localStorage.getItem('strapi_autopublish') === 'true';
+    const autopublishToggle = document.getElementById('set-strapi-autopublish') as HTMLInputElement | null;
+    if (autopublishToggle) {
+      autopublishToggle.checked = autopublish;
+    }
   } catch {}
 }
 

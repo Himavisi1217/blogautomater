@@ -1,6 +1,6 @@
 import { apiPost } from '../api';
 import { saveBlog, generateId } from '../store';
-import { showToast } from '../utils';
+import { showToast, showAuthorPrompt } from '../utils';
 
 export function renderGenerate(): string {
   // Check if a keyword was pre-selected
@@ -16,6 +16,10 @@ export function renderGenerate(): string {
       sessionStorage.removeItem('selectedKeyword');
     } catch {}
   }
+
+  const isAutoPublish = localStorage.getItem('strapi_autopublish') === 'true';
+  const strapiBtnStyle = isAutoPublish ? 'btn-danger' : 'btn-success';
+  const strapiBtnText = isAutoPublish ? 'Publish' : 'Save to Strapi';
 
   return `
     <div class="page" id="page-generate">
@@ -98,7 +102,7 @@ export function renderGenerate(): string {
 
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button class="btn btn-secondary" id="btn-gen-preview">Full Preview</button>
-              <button class="btn btn-success" id="btn-gen-strapi">Save to Strapi</button>
+              <button class="btn ${strapiBtnStyle}" id="btn-gen-strapi">${strapiBtnText}</button>
             </div>
 
             <div class="meta-panel" id="meta-panel" style="display:none;">
@@ -251,6 +255,14 @@ async function generateMetaData(): Promise<void> {
         <div class="meta-item-label">Slug</div>
         <div class="meta-item-value">${data.meta.slug || ''}</div>
       </div>
+      ${data.meta.keywords && Array.isArray(data.meta.keywords) && data.meta.keywords.length > 0 ? `
+        <div class="meta-item">
+          <div class="meta-item-label">Keywords (${data.meta.keywords.length})</div>
+          <div class="meta-item-value" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;">
+            ${data.meta.keywords.map((kw: string) => `<span style="background:#4f46e5;color:white;padding:6px 12px;border-radius:6px;font-size:0.85rem;white-space:nowrap;">${kw}</span>`).join('')}
+          </div>
+        </div>
+      ` : '<div class="meta-item"><div class="meta-item-label">Keywords</div><div class="meta-item-value" style="color:var(--text-secondary);">No keywords generated</div></div>'}
     `;
 
     showToast('SEO metadata generated!', 'success');
@@ -263,33 +275,67 @@ async function generateMetaData(): Promise<void> {
 async function handleSaveToStrapi(): Promise<void> {
   if (!currentBlog) return;
 
+  // Ask for author name
+  const author = await showAuthorPrompt();
+  if (!author) return; // User cancelled
+
   const strapiBtn = document.getElementById('btn-gen-strapi') as HTMLButtonElement;
   strapiBtn.disabled = true;
   strapiBtn.textContent = 'Saving...';
 
   try {
+    const autopublish = localStorage.getItem('strapi_autopublish') === 'true';
+    
     const payload: any = {
       title: currentBlog.title,
       content: currentBlog.content,
       mainKeyword: currentBlog.mainKeyword,
       secondaryKeywords: currentBlog.secondaryKeywords,
+      excerpt: currentBlog.excerptBasis || '',
+      slug: currentBlog.meta?.slug || '',
+      author: author,
+      keywords: currentBlog.meta?.keywords || [],
+      publish: autopublish, // Pass publish flag to backend
     };
 
     if (currentBlog.meta) {
       Object.assign(payload, currentBlog.meta);
     }
 
-    const data = await apiPost('/strapi/publish', payload);
+    // Save to Strapi
+    const strapiData = await apiPost('/strapi/publish', payload);
+
+    // Also save to Notion Blog Articles
+    try {
+      const notionPayload = {
+        title: currentBlog.title,
+        content: currentBlog.content,
+        mainKeyword: currentBlog.mainKeyword,
+        secondaryKeywords: currentBlog.secondaryKeywords,
+        metaTitle: currentBlog.meta?.metaTitle || '',
+        metaDescription: currentBlog.meta?.metaDescription || '',
+        excerpt: currentBlog.excerptBasis || '',
+        slug: currentBlog.meta?.slug || '',
+        provider: currentBlog.provider,
+        keywords: currentBlog.meta?.keywords?.join(', ') || '',
+      };
+
+      await apiPost('/notion/save-blog', notionPayload);
+    } catch (notionErr: any) {
+      console.warn('Notion save warning:', notionErr.message);
+      // Don't fail completely if Notion save fails, Strapi save is more important
+    }
 
     currentBlog.status = 'saved';
-    currentBlog.strapiId = data.strapiId;
+    currentBlog.strapiId = strapiData.strapiId;
     saveBlog(currentBlog);
 
-    showToast('Blog saved as draft in Strapi!', 'success');
-    strapiBtn.textContent = '✓ Saved to Strapi';
+    showToast('Blog saved to Strapi and Notion!', 'success');
+    strapiBtn.textContent = autopublish ? '✓ Published' : '✓ Saved';
   } catch (err: any) {
     showToast(err.message, 'error');
     strapiBtn.disabled = false;
-    strapiBtn.textContent = 'Save to Strapi';
+    const autopublish = localStorage.getItem('strapi_autopublish') === 'true';
+    strapiBtn.textContent = autopublish ? 'Publish' : 'Save to Strapi';
   }
 }

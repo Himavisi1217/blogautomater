@@ -14,6 +14,7 @@ export interface BlogPost {
     ogDescription: string;
     excerpt: string;
     slug: string;
+    keywords?: string[];
   };
   strapiId?: number;
   status: 'generated' | 'saved' | 'published';

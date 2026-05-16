@@ -1,9 +1,12 @@
 import { getBlogs, deleteBlog, saveBlog } from '../store';
-import { formatDate, showToast } from '../utils';
+import { formatDate, showToast, showAuthorPrompt } from '../utils';
 import { apiPost } from '../api';
 
 export function renderBlogs(): string {
   const blogs = getBlogs();
+  const isAutoPublish = localStorage.getItem('strapi_autopublish') === 'true';
+  const strapiBtnStyle = isAutoPublish ? 'btn-danger' : 'btn-success';
+  const strapiBtnText = isAutoPublish ? 'Publish' : 'Save to Strapi';
 
   return `
     <div class="page" id="page-blogs">
@@ -37,7 +40,7 @@ export function renderBlogs(): string {
                     <td>
                       <div style="display:flex;gap:6px;flex-wrap:wrap;">
                         <button class="btn btn-secondary btn-sm" onclick="window.previewBlog('${blog.id}')">Preview</button>
-                        ${blog.status !== 'saved' ? `<button class="btn btn-success btn-sm" id="strapi-btn-${blog.id}" onclick="window.saveBlogToStrapi('${blog.id}')">Save to Strapi</button>` : `<button class="btn btn-sm" disabled style="opacity:0.6;background:var(--success-bg);color:var(--success);border:1px solid var(--success);">✓ Saved</button>`}
+                        ${blog.status !== 'saved' ? `<button class="btn ${strapiBtnStyle} btn-sm" id="strapi-btn-${blog.id}" onclick="window.saveBlogToStrapi('${blog.id}')">${strapiBtnText}</button>` : `<button class="btn btn-sm" disabled style="opacity:0.6;background:var(--success-bg);color:var(--success);border:1px solid var(--success);">✓ ${isAutoPublish ? 'Published' : 'Saved'}</button>`}
                         <button class="btn btn-danger btn-sm" onclick="window.deleteBlogPost('${blog.id}')">Delete</button>
                       </div>
                     </td>
@@ -73,6 +76,9 @@ export function initBlogsPage(): void {
     const blog = blogs.find(b => b.id === id);
     if (!blog) return;
 
+    const author = await showAuthorPrompt();
+    if (!author) return; // User cancelled
+
     const btn = document.getElementById(`strapi-btn-${id}`) as HTMLButtonElement;
     if (btn) {
       btn.disabled = true;
@@ -80,11 +86,18 @@ export function initBlogsPage(): void {
     }
 
     try {
+      const autopublish = localStorage.getItem('strapi_autopublish') === 'true';
+
       const payload: any = {
         title: blog.title,
         content: blog.content,
         mainKeyword: blog.mainKeyword,
         secondaryKeywords: blog.secondaryKeywords,
+        excerpt: blog.excerptBasis || '',
+        slug: blog.meta?.slug || '',
+        author: author,
+        keywords: blog.meta?.keywords || [],
+        publish: autopublish,
       };
 
       if (blog.meta) {
@@ -92,18 +105,38 @@ export function initBlogsPage(): void {
       }
 
       const data = await apiPost('/strapi/publish', payload);
+      
+      // Save to Notion as well
+      try {
+        const notionPayload = {
+          title: blog.title,
+          content: blog.content,
+          mainKeyword: blog.mainKeyword,
+          secondaryKeywords: blog.secondaryKeywords,
+          metaTitle: blog.meta?.metaTitle || '',
+          metaDescription: blog.meta?.metaDescription || '',
+          excerpt: blog.excerptBasis || '',
+          slug: blog.meta?.slug || '',
+          provider: blog.provider,
+          keywords: blog.meta?.keywords?.join(', ') || '',
+        };
+        await apiPost('/notion/save-blog', notionPayload);
+      } catch (notionErr: any) {
+        console.warn('Notion save warning:', notionErr.message);
+      }
 
       blog.status = 'saved';
       blog.strapiId = data.strapiId;
       saveBlog(blog);
 
-      showToast('Blog saved as draft in Strapi!', 'success');
+      showToast('Blog saved to Strapi and Notion!', 'success');
       window.navigateTo('blogs'); // Re-render to update button state
     } catch (err: any) {
       showToast(err.message, 'error');
       if (btn) {
         btn.disabled = false;
-        btn.textContent = 'Save to Strapi';
+        const autopublish = localStorage.getItem('strapi_autopublish') === 'true';
+        btn.textContent = autopublish ? 'Publish' : 'Save to Strapi';
       }
     }
   };

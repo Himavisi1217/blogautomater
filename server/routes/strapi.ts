@@ -18,44 +18,57 @@ strapiRouter.post('/publish', async (req: Request, res: Response) => {
       content,
       metaTitle,
       metaDescription,
+      metaImage,
       ogTitle,
       ogDescription,
+      ogImage,
+      ogUrl,
+      ogType = 'article',
       excerpt,
       slug,
+      author = 'System',
+      category = 'Product updates',
       mainKeyword,
       secondaryKeywords,
-      contentType = 'articles',  // Strapi collection type name
+      keywords,
+      publish = false,
+      contentType = 'blog-posts',  // Strapi collection slug (/api/blog-posts)
     } = req.body;
 
-    // Build the payload for Strapi
+    // Build the payload for Strapi with required fields
     const payload: any = {
       data: {
-        title,
-        content,
-        slug,
-        excerpt,
-        publishedAt: null, // null = draft status
+        title: title || 'Untitled',
+        content: content || '',
+        slug: slug || title?.toLowerCase().replace(/\s+/g, '-') || 'untitled',
+        excerpt: excerpt || content?.substring(0, 160) || '',
+        author: author,
+        category: category,
+        metaDescription: metaDescription || excerpt || content?.substring(0, 160) || '',
+        // In Strapi v5, status is controlled via query param, not publishedAt in data
+        // SEO section with metaTitle, metaDescription, metaImage, keywords
+        seo: {
+          metaTitle: metaTitle || title || '',
+          metaDescription: metaDescription || excerpt || content?.substring(0, 160) || '',
+          metaImage: metaImage || null,
+          keywords: keywords && keywords.length > 0 ? (Array.isArray(keywords) ? keywords.join(', ') : keywords) : '',
+          // openGraph as nested component inside SEO
+          openGraph: {
+            ogTitle: ogTitle || title || '',
+            ogDescription: ogDescription || metaDescription || excerpt || '',
+            ogImage: ogImage || null,
+            ogUrl: ogUrl || null,
+            ogType: 'article',
+          },
+        },
       },
     };
 
-    // Add SEO fields if the content type supports them
-    if (metaTitle || metaDescription) {
-      payload.data.seo = {
-        metaTitle,
-        metaDescription,
-        shareImage: null,
-      };
-    }
+    // Add optional fields (only if Strapi schema supports them)
+    // Remove unsupported fields like metaTitle, ogTitle, ogDescription, ogImage, ogUrl, ogType, mainKeyword, secondaryKeywords
 
-    // Add meta fields directly if content type has them as top-level fields
-    if (metaTitle) payload.data.metaTitle = metaTitle;
-    if (metaDescription) payload.data.metaDescription = metaDescription;
-    if (ogTitle) payload.data.ogTitle = ogTitle;
-    if (ogDescription) payload.data.ogDescription = ogDescription;
-    if (mainKeyword) payload.data.mainKeyword = mainKeyword;
-    if (secondaryKeywords) payload.data.secondaryKeywords = Array.isArray(secondaryKeywords) ? secondaryKeywords.join(', ') : secondaryKeywords;
-
-    const response = await fetch(`${strapiUrl}/api/${contentType}`, {
+    const statusQuery = publish ? '?status=published' : '?status=draft';
+    const response = await fetch(`${strapiUrl}/api/${contentType}${statusQuery}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -88,7 +101,7 @@ strapiRouter.get('/drafts', async (req: Request, res: Response) => {
   try {
     const strapiUrl = (req.query.strapiUrl as string) || process.env.STRAPI_URL || 'http://localhost:1337';
     const strapiToken = (req.headers['x-strapi-token'] as string) || process.env.STRAPI_API_TOKEN;
-    const contentType = (req.query.contentType as string) || 'articles';
+    const contentType = (req.query.contentType as string) || 'blog-posts';
 
     if (!strapiToken) {
       res.status(400).json({ error: 'Strapi API token is required' });
