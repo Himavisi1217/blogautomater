@@ -1,0 +1,7 @@
+netlify/
+NETLIFY_DEPLOYMENT.md
+netlify.toml
+.git
+node_modules
+.env.local
+.env.*.local
